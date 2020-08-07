@@ -3,12 +3,13 @@ import collections
 from SnakeGame.constants.shape import Shape
 from SnakeGame.constants.direction import Direction
 
-
 class Segment(object):
-    SEGMENT_LENGTH = 30
-    SEGMENT_WIDTH = 30
+    SEGMENT_LENGTH = 35
+    SEGMENT_WIDTH = 25
+    HEAD = 'head'
+    TAIL = 'tail'
 
-    def __init__(self, board, shape,direction, x, y):
+    def __init__(self, board, shape,direction, x, y,color):
             self.shape = shape
             self.board = board
             self.index = None
@@ -16,19 +17,23 @@ class Segment(object):
             self.x = self.y = None
             self.coords = ()
             self.original_direction = direction
+            self.color = color
 
             self.create(x, y)
 
     def create(self, x_coord, y_coord):
-        x_diff = Segment.SEGMENT_LENGTH / 2
-        y_diff = Segment.SEGMENT_WIDTH / 2
+        len_diff = Segment.SEGMENT_LENGTH / 2
+        width_diff = Segment.SEGMENT_WIDTH / 2
 
-        rectangle_coords = x_coord - x_diff, y_coord - y_diff, x_coord + x_diff, y_coord + y_diff
+        if self.original_direction in [Direction.LEFT, Direction.RIGHT]:
+            rectangle_coords = x_coord - len_diff, y_coord - width_diff, x_coord + len_diff, y_coord + width_diff
+        else:
+            rectangle_coords = x_coord - width_diff, y_coord - len_diff, x_coord + width_diff, y_coord + len_diff
 
         if self.shape == Shape.RECTANGlE:
-            index = self.board.create_rectangle(rectangle_coords, fill='pink', tags=('segment'))
-        if self.shape == Shape.OVAL:
-            index = self.board.create_oval(rectangle_coords, fill='pink', tags=('segment'))
+            index = self.board.create_rectangle(rectangle_coords, fill=self.color, tags=('segment'))
+        else:
+            index = self.board.create_oval(rectangle_coords, fill=self.color, tags=('segment'))
 
         self.index = index
 
@@ -57,14 +62,13 @@ class Snake(object):
     SPEED_INCREMENT_SEGMENT_COUNT = 2
     SPEED_INCREMENT_FACTOR = 10
 
-    def __init__(self, canvas, collision_callbak_fn, **properties):
+    def __init__(self, canvas, **properties):
 
         self.properties = properties
         self.canvas = canvas
-        self.collision_callback_fn = collision_callbak_fn
 
         self.segments = collections.deque([])
-        self.direction = Direction.RIGHT
+
         self.speed = 100
 
         self.head = None
@@ -87,100 +91,80 @@ class Snake(object):
         self.speed -= Snake.SPEED_INCREMENT_FACTOR
         print("Speed incremented: {}".format(self.speed))
 
-    def set_direction(self, direction):
-        if (self.direction == Direction.RIGHT and direction == Direction.LEFT) \
-                or (self.direction == Direction.LEFT and direction == Direction.RIGHT) \
-                or (self.direction == Direction.UP and direction == Direction.DOWN)\
-                or (self.direction == Direction.DOWN and direction == Direction.UP):
-
-            return
-
-        self.direction = direction
-
     def set_property(self, segments, **kwargs):
         for segment in segments:
             segment.configure(**kwargs)
 
-    def add_head(self,flag=False, *snake_init_coords):
-
-        if not len(self.segments):
-            head_coords = snake_init_coords
-            prev_head = None
-        else:
-            head = self.segments[len(self.segments)-1]
-            head_coords = head.x, head.y
-
-            prev_head = head
+    def add_segment(self, is_head, direction, **kwargs):
 
         dx = dy = 0
 
-        if self.direction == Direction.UP:
-            dy= - Segment.SEGMENT_LENGTH
-        if self.direction == Direction.DOWN:
-            dy = Segment.SEGMENT_LENGTH
-        if self.direction == Direction.LEFT:
-            dx = -Segment.SEGMENT_LENGTH
-        if self.direction == Direction.RIGHT:
-            dx = Segment.SEGMENT_LENGTH
+        if direction == Direction.UP:
+            if is_head:
+                dy= - Segment.SEGMENT_LENGTH
+            else:
+                dy = Segment.SEGMENT_LENGTH
+        if direction == Direction.DOWN:
+            if is_head:
+                dy = Segment.SEGMENT_LENGTH
+            else:
+                dy =  - Segment.SEGMENT_LENGTH
+        if direction == Direction.LEFT:
+            if is_head:
+                dx = -Segment.SEGMENT_LENGTH
+            else:
+                dx = Segment.SEGMENT_LENGTH
+        if direction == Direction.RIGHT:
+            if is_head:
+                dx = Segment.SEGMENT_LENGTH
+            else:
+                dx = - Segment.SEGMENT_LENGTH
 
-        x_coord_of_new_segment, y_coord_of_new_segment = head_coords[0]+dx, head_coords[1]+dy
+        x_coord_of_new_segment, y_coord_of_new_segment = None,None
 
-        if x_coord_of_new_segment <= 0:
-            x_coord_of_new_segment = self.canvas.width - Segment.SEGMENT_WIDTH
-        if x_coord_of_new_segment >= self.canvas.width:
-            x_coord_of_new_segment = Segment.SEGMENT_WIDTH
-        if y_coord_of_new_segment <= 0:
-            y_coord_of_new_segment = self.canvas.height - Segment.SEGMENT_WIDTH
-        if y_coord_of_new_segment >= self.canvas.height:
-            y_coord_of_new_segment = Segment.SEGMENT_WIDTH
+        prev_head = None
 
-        # self.canvas.create_line(head_coords+(x_coord_of_new_segment, y_coord_of_new_segment), fill="white")
+        if is_head:
+            if not len(self.segments):
+                head_coords = kwargs['snake_init_coords']
+            else:
+                head = self.segments[len(self.segments) - 1]
+                head_coords = head.x, head.y
+                prev_head = head
 
+            x_coord_of_new_segment, y_coord_of_new_segment = head_coords[0] + dx, head_coords[1] + dy
 
-        shape = Shape.RECTANGlE
+            if x_coord_of_new_segment <= 0:
+                x_coord_of_new_segment = self.canvas.width - Segment.SEGMENT_WIDTH
+            if x_coord_of_new_segment >= self.canvas.width:
+                x_coord_of_new_segment = Segment.SEGMENT_WIDTH
+            if y_coord_of_new_segment <= 0:
+                y_coord_of_new_segment = self.canvas.height - Segment.SEGMENT_WIDTH
+            if y_coord_of_new_segment >= self.canvas.height:
+                y_coord_of_new_segment = Segment.SEGMENT_WIDTH
 
-        segment = Segment(self.canvas, shape, self.direction, x_coord_of_new_segment, y_coord_of_new_segment)
-
-        if not prev_head:
-            self.tail = segment
         else:
-            prev_head.recreate(Shape.OVAL)
+            tail_coords = self.tail.x, self.tail.y
 
-        self.segments.append(segment)
+            x_coord_of_new_segment, y_coord_of_new_segment = tail_coords[0] + dx, tail_coords[1] + dy
+
+        color = 'red' if is_head else 'pink'
+
+        new_segment = Segment(self.canvas, Shape.OVAL, direction, x_coord_of_new_segment,
+                              y_coord_of_new_segment, color)
+
+        if is_head:
+            self.segments.append(new_segment)
+            self.head = new_segment
+            if not prev_head:
+                self.tail = new_segment
+            else:
+                prev_head.recreate(Shape.OVAL)
+        else:
+            self.tail = new_segment
+            self.segments.appendleft(new_segment)
+
         self.canvas.update()
-
-        self.head = segment
-
-
-
-    def add_tail(self):
-
-        direction = self.tail.original_direction
-
-        dx = dy = 0
-
-        if self.direction == Direction.UP:
-            dy= Segment.SEGMENT_LENGTH
-        if self.direction == Direction.DOWN:
-            dy = - Segment.SEGMENT_LENGTH
-        if self.direction == Direction.LEFT:
-            dx = Segment.SEGMENT_LENGTH
-        if self.direction == Direction.RIGHT:
-            dx = - Segment.SEGMENT_LENGTH
-
-        tail_coords = self.tail.coords
-
-        coords_of_new_segment = tail_coords[0]+dx, tail_coords[1]+dy
-
-        segment = Segment(self.canvas, Shape.OVAL, direction, *coords_of_new_segment)
-
-        self.segments.appendleft(segment)
-        self.canvas.update()
-
-        self.tail = segment
-
-        print("Tail added")
-
 
     def remove_tail(self):
         segment = self.segments.popleft()
@@ -191,17 +175,3 @@ class Snake(object):
         self.tail = self.segments[len(self.segments)-1]
 
 
-    def move(self):
-
-        if self.is_frozen:
-            return
-
-        if not self.is_changing:
-
-            self.collision_callback_fn()
-
-            self.add_head(True)
-
-            self.remove_tail()
-
-        self.canvas.after(self.speed, lambda: self.move())

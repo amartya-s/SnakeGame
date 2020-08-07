@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from SnakeGame.controller import Controller
+from SnakeGame.controllers.game_controller import Controller
 
 
 class GameCanvas(tk.Canvas):
@@ -40,7 +40,7 @@ class Game:
 
     def move(self, event):
         print(event.keysym)
-        self.controller.move_snake(event.keysym)
+        self.controller.change_direction(event.keysym)
 
     def play(self):
         self.bind_events()
