@@ -1,27 +1,33 @@
+import math
 import collections
 
 from SnakeGame.constants.shape import Shape
 from SnakeGame.constants.direction import Direction
 
 class Segment(object):
-    SEGMENT_LENGTH = 35
-    SEGMENT_WIDTH = 25
+    SEGMENT_LENGTH = 30
+    SEGMENT_WIDTH = 30
     HEAD = 'head'
     TAIL = 'tail'
+    BODY = 'body'
+    ANGLE_VARIATION = 20
+    CONST = math.degrees(math.atan(0.5))
 
-    def __init__(self, board, shape,direction, x, y,color):
-            self.shape = shape
+    def __init__(self, board,direction, x, y, type,tail_angle=0):
             self.board = board
             self.index = None
 
-            self.x = self.y = None
+            self.x, self.y = x, y
             self.coords = ()
             self.original_direction = direction
-            self.color = color
+            self.type = type
+            self.tail_angle = tail_angle
+            self.tail_direction = Direction.UP
 
-            self.create(x, y)
+            self.create()
 
-    def create(self, x_coord, y_coord):
+    def get_rectangle_coords(self):
+        x_coord, y_coord = self.x, self.y
         len_diff = Segment.SEGMENT_LENGTH / 2
         width_diff = Segment.SEGMENT_WIDTH / 2
 
@@ -30,31 +36,79 @@ class Segment(object):
         else:
             rectangle_coords = x_coord - width_diff, y_coord - len_diff, x_coord + width_diff, y_coord + len_diff
 
-        if self.shape == Shape.RECTANGlE:
-            index = self.board.create_rectangle(rectangle_coords, fill=self.color, tags=('segment'))
+        return rectangle_coords
+
+    def create(self):
+
+        rectangle_coords = self.get_rectangle_coords()
+        self.coords = rectangle_coords
+
+        if self.type == Segment.HEAD:
+            index = self.board.create_rectangle(rectangle_coords, fill='red', tags=('head'))
+        elif self.type == Segment.BODY:
+            index = self.board.create_rectangle(rectangle_coords, fill='pink', tags=('body'))
         else:
-            index = self.board.create_oval(rectangle_coords, fill=self.color, tags=('segment'))
+            index = self.create_tail()
 
         self.index = index
 
-        self.x = x_coord
-        self.y = y_coord
+    def create_tail(self):
+        tail_angle = self.tail_angle
+        #index = self.board.create_rectangle(self.coords, fill='pink', tags=('body'))
 
-        self.coords = rectangle_coords
+        # x2, y2 = self.coords[2], self.coords[1] + (self.coords[3]-self.coords[1])/2
+        if self.original_direction == Direction.RIGHT:
+            self.coords = self.coords[0] - Segment.SEGMENT_WIDTH, self.coords[1], self.coords[2], self.coords[3]
+            y1 = self.coords[1] + (self.coords[3] - self.coords[1]) / 2 + math.tan(math.radians(self.tail_angle)) * (
+                        self.coords[2] - self.coords[0])
+            index=self.board.create_polygon(self.coords[2],self.coords[3],self.coords[2],self.coords[1],self.coords[0],y1,fill='green')
+        elif self.original_direction == Direction.LEFT:
+            self.coords = self.coords[0], self.coords[1], self.coords[2]+Segment.SEGMENT_WIDTH, self.coords[3]
+            y1 = self.coords[1] + (self.coords[3] - self.coords[1]) / 2 + math.tan(math.radians(self.tail_angle)) * (
+                    self.coords[2] - self.coords[0])
+            index=self.board.create_polygon(self.coords[0], self.coords[1], self.coords[0], self.coords[3], self.coords[2], y1,
+                                      fill='green')
+        elif self.original_direction == Direction.UP:
+            self.coords = self.coords[0], self.coords[1], self.coords[2], self.coords[3]+Segment.SEGMENT_WIDTH
+            x = self.coords[0] + (self.coords[2] - self.coords[0]) / 2 + math.tan(math.radians(self.tail_angle)) * (
+                    self.coords[3] - self.coords[1])
+            index=self.board.create_polygon(self.coords[0], self.coords[1], self.coords[2], self.coords[1], x, self.coords[3] ,
+                                      fill='green')
+
+        else:
+            self.coords = self.coords[0], self.coords[1]-Segment.SEGMENT_WIDTH, self.coords[2], self.coords[3]
+            x = self.coords[0] + (self.coords[2] - self.coords[0]) / 2 + math.tan(math.radians(self.tail_angle)) * (
+                    self.coords[3] - self.coords[1])
+            index=self.board.create_polygon(self.coords[0], self.coords[3], self.coords[2], self.coords[3], x, self.coords[1] ,
+                                      fill='green')
+
+        return index
 
     def configure(self, **kwargs):
         self.board.itemconfigure(self.index, **kwargs)
 
-    def recreate(self, shape):
+    def recreate(self, type, tail_angle=0, tail_direction=Direction.UP):
         self.board.delete(self.index)
 
-        self.shape = shape
+        self.type = type
 
-        if self.shape == Shape.RECTANGlE:
-            index = self.board.create_rectangle(*self.coords, fill='pink', tags=('segment'))
-        if self.shape == Shape.OVAL:
-            index = self.board.create_oval(*self.coords, fill='pink', tags=('segment'))
-
+        if self.type == Segment.HEAD:
+            index = self.board.create_rectangle(self.coords, fill='red', tags=('head'))
+        elif self.type == Segment.BODY:
+            index = self.board.create_rectangle(self.coords, fill='pink', tags=('body'))
+        else:
+            self.tail_direction = tail_direction
+            if tail_direction == Direction.UP:
+                self.tail_angle = tail_angle+Segment.ANGLE_VARIATION
+                if self.tail_angle > Segment.CONST:
+                    self.tail_direction = Direction.DOWN
+                    self.tail_angle = Segment.CONST
+            elif tail_direction == Direction.DOWN:
+                self.tail_angle = tail_angle-Segment.ANGLE_VARIATION
+                if self.tail_angle < -Segment.CONST:
+                    self.tail_direction = Direction.UP
+                    self.tail_angle = -Segment.CONST
+            index = self.create_tail()
         self.index = index
 
 class Snake(object):
@@ -69,13 +123,21 @@ class Snake(object):
 
         self.segments = collections.deque([])
 
-        self.speed = 100
+        self.speed = 300
 
         self.head = None
         self.tail = None
 
         self.is_frozen = False
         self.is_changing = False
+        self.even_move = True
+
+    def __str__(self):
+        str_return = ''
+        for segment in self.segments:
+            str_return+="{}[{}]->".format(segment.type, segment.index)
+
+        return str_return
 
     def set_is_changing(self, is_changing):
         self.is_changing = is_changing
@@ -85,7 +147,6 @@ class Snake(object):
 
     def unfreeze(self):
         self.is_frozen = False
-        self.move()
 
     def increment_speed(self):
         self.speed -= Snake.SPEED_INCREMENT_FACTOR
@@ -95,9 +156,13 @@ class Snake(object):
         for segment in segments:
             segment.configure(**kwargs)
 
-    def add_segment(self, is_head, direction, **kwargs):
+    def add_segment(self, segment_type, direction, **kwargs):
 
         dx = dy = 0
+
+        is_head = True if segment_type == Segment.HEAD else False
+        is_body = True if segment_type == Segment.BODY else False
+        is_tail = True if segment_type == Segment.TAIL else False
 
         if direction == Direction.UP:
             if is_head:
@@ -120,15 +185,13 @@ class Snake(object):
             else:
                 dx = - Segment.SEGMENT_LENGTH
 
-        x_coord_of_new_segment, y_coord_of_new_segment = None,None
-
         prev_head = None
 
         if is_head:
             if not len(self.segments):
                 head_coords = kwargs['snake_init_coords']
             else:
-                head = self.segments[len(self.segments) - 1]
+                head = self.head
                 head_coords = head.x, head.y
                 prev_head = head
 
@@ -148,10 +211,13 @@ class Snake(object):
 
             x_coord_of_new_segment, y_coord_of_new_segment = tail_coords[0] + dx, tail_coords[1] + dy
 
-        color = 'red' if is_head else 'pink'
 
-        new_segment = Segment(self.canvas, Shape.OVAL, direction, x_coord_of_new_segment,
-                              y_coord_of_new_segment, color)
+        tail_angle = 0
+
+        new_segment = Segment(self.canvas, direction, x_coord_of_new_segment,
+                              y_coord_of_new_segment, segment_type,tail_angle)
+
+        #print("Added segment: {} at {}".format(segment_type, new_segment.index))
 
         if is_head:
             self.segments.append(new_segment)
@@ -159,19 +225,33 @@ class Snake(object):
             if not prev_head:
                 self.tail = new_segment
             else:
-                prev_head.recreate(Shape.OVAL)
-        else:
+                prev_head.recreate(Segment.BODY)
+         #       print("Recreated prev head at {}".format(prev_head.index))
+        elif is_tail:
+            prev_tail = self.tail
             self.tail = new_segment
             self.segments.appendleft(new_segment)
+        #    print("Recreated prev tail at {}".format(prev_tail.index))
 
+            prev_tail.recreate(Segment.BODY)
+        else:
+            self.segments.appendleft(new_segment)
+            self.tail = new_segment
+        #print("Head: {}, Tail:{}".format(self.head.index, self.tail.index))
+        self.even_move = not self.even_move
         self.canvas.update()
 
     def remove_tail(self):
         segment = self.segments.popleft()
+        tail_angle = segment.tail_angle
+        tail_direction = segment.tail_direction
         self.canvas.delete(segment.index)
 
         del segment
 
-        self.tail = self.segments[len(self.segments)-1]
+        self.tail = self.segments[0]
+        #print("Remove tail, recreate tail:{}".format(self.tail.index))
+
+        self.tail.recreate(Segment.TAIL, tail_angle,tail_direction )
 
 
