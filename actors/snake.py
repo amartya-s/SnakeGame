@@ -5,8 +5,8 @@ from SnakeGame.constants.shape import Shape
 from SnakeGame.constants.direction import Direction
 
 class Segment(object):
-    SEGMENT_LENGTH = 30
-    SEGMENT_WIDTH = 30
+    SEGMENT_LENGTH = 20
+    SEGMENT_WIDTH = 20
     HEAD = 'head'
     TAIL = 'tail'
     BODY = 'body'
@@ -42,15 +42,32 @@ class Segment(object):
 
         rectangle_coords = self.get_rectangle_coords()
         self.coords = rectangle_coords
-
         if self.type == Segment.HEAD:
-            index = self.board.create_rectangle(rectangle_coords, fill='red', tags=('head'))
+            if self.original_direction == Direction.RIGHT:
+                head_coords = rectangle_coords[0]-2*Segment.SEGMENT_WIDTH, rectangle_coords[1], rectangle_coords[2]+Segment.SEGMENT_WIDTH, rectangle_coords[3]
+                start,extent = -90, 180
+            elif self.original_direction == Direction.LEFT:
+                head_coords = rectangle_coords[0], rectangle_coords[1], rectangle_coords[2]+Segment.SEGMENT_WIDTH, rectangle_coords[3]
+                start,extent = 90, 180
+            elif self.original_direction == Direction.UP:
+                head_coords = rectangle_coords[0], rectangle_coords[1], rectangle_coords[2], rectangle_coords[3]+Segment.SEGMENT_LENGTH
+                start, extent = 0, 180
+
+            else:
+                head_coords = rectangle_coords[0], rectangle_coords[1]-Segment.SEGMENT_LENGTH, rectangle_coords[2], rectangle_coords[3]
+                start,extent  = 0, -180
+
+            #index = self.board.create_arc(head_coords,start=start,extent=extent, fill='red', tags=('head'))
+            index = self.board.create_rectangle(rectangle_coords, fill='green', tags=('head',))
         elif self.type == Segment.BODY:
             index = self.board.create_rectangle(rectangle_coords, fill='pink', tags=('body'))
         else:
             index = self.create_tail()
 
         self.index = index
+
+        print(self.type)
+        print(self.coords)
 
     def create_tail(self):
         tail_angle = self.tail_angle
@@ -111,6 +128,7 @@ class Segment(object):
             index = self.create_tail()
         self.index = index
 
+
 class Snake(object):
 
     SPEED_INCREMENT_SEGMENT_COUNT = 2
@@ -123,7 +141,7 @@ class Snake(object):
 
         self.segments = collections.deque([])
 
-        self.speed = 300
+        self.speed = 100
 
         self.head = None
         self.tail = None

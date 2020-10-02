@@ -36,14 +36,12 @@ class ImageProcessor:
 
         rdb_frames = []
 
-        backgroundcolor = (255, 255, 255)
+        backgroundcolor = (255,255,255)
 
         is_animated = False
 
         if hasattr(img, 'is_animated') and img.is_animated:
-            print(img.n_frames)
             is_animated = True
-        print(is_animated)
         if is_animated:
             for frame in range(0, img.n_frames):
                 img.seek(frame)
