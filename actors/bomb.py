@@ -1,8 +1,9 @@
 import time
 from PIL import ImageTk
 
-from SnakeGame.service.image_processor import ImageProcessor
-from SnakeGame.service.timer import CustomTimer
+from SnakeGame.utils.image_processor import ImageProcessor
+from SnakeGame.utils.timer import CustomTimer
+
 
 class Bomb:
     WIDTH = 50
@@ -42,7 +43,7 @@ class Bomb:
         self.time_left = duration
 
         # destroy after "duration"s have passed
-        t=CustomTimer(duration, self.destroy)
+        t=CustomTimer(duration/1000, self.destroy)
 
         self.timer = t
         self.timer.start()

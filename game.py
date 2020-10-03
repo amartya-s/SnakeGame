@@ -3,8 +3,9 @@ from PIL import Image, ImageTk, ImageDraw
 import tkinter as tk
 from tkinter import ttk
 
-from SnakeGame.controllers.game_controller import Controller
+from SnakeGame.utils.animation import AnimationUtil
 from SnakeGame.constants.game_states import States
+from SnakeGame.controllers.game_controller import Controller
 
 
 class GameCanvas(tk.Canvas):
@@ -68,39 +69,6 @@ class Game:
 
         self.controller = Controller()
 
-
-    @staticmethod
-    def fade(widget, smoothness=4, cnf={}, **kw):  #source: https://stackoverflow.com/questions/49433315/is-there-a-wayor-a-library-for-making-a-smooth-colour-transition-in-tkinter
-
-        """This function will show faded effect on widget's different color options.
-
-        Args:
-            widget (tk.Widget): Passed by the bind function.
-            smoothness (int): Set the smoothness of the fading (1-10).
-            background (str): Fade background color to.
-            foreground (str): Fade foreground color to."""
-
-        kw = tk._cnfmerge((cnf, kw))
-        if not kw: raise ValueError("No option given, -bg, -fg, etc")
-        if len(kw) > 1: return [Game.fade(widget, smoothness, {k: v}) for k, v in kw.items()][0]
-        if not getattr(widget, '_after_ids', None): widget._after_ids = {}
-        widget.after_cancel(widget._after_ids.get(list(kw)[0], ' '))
-        c1 = tuple(map(lambda a: a / (65535), widget.winfo_rgb(widget[list(kw)[0]])))
-        c2 = tuple(map(lambda a: a / (65535), widget.winfo_rgb(list(kw.values())[0])))
-        colors = tuple(colour.rgb2hex(c, force_long=True)
-                       for c in colour.color_scale(c1, c2, max(1, smoothness * 100)))
-
-        def worker(count=0):
-            if len(colors) - 1 <= count: return
-            widget.config({list(kw)[0]: colors[count]})
-            widget._after_ids.update({list(kw)[0]: widget.after(
-                max(1, int(smoothness / 10)), worker, count + 1)})
-
-        worker()
-
-    def bg_config(self, event, widget, bg, fg):
-        Game.fade(widget, smoothness=5, fg=fg, bg=bg)
-
     @staticmethod
     def get_control_text():
         return "Pause <Space> | Full Screen <F11>"
@@ -123,8 +91,8 @@ class Game:
         # Play button
         bt = tk.Button(master=control_frame, text="Play", font="Times 20 bold", borderwidth=4, relief="raised", justify="center", width=10
                        , command=self.create_game_window)
-        bt.bind("<Enter>", lambda e: self.bg_config(e,bt, "#f47142", "white"))
-        bt.bind("<Leave>", lambda e: self.bg_config(e,bt, "white", "black"))
+        bt.bind("<Enter>", lambda e: AnimationUtil.fade_btn(e, bt, "#f47142", "white"))
+        bt.bind("<Leave>", lambda e: AnimationUtil.fade_btn(e, bt, "white", "black"))
         # select level frame
         dropdown_frame = tk.Frame(control_frame, width=100, height=100, relief='groove',borderwidth=3)
 
@@ -233,13 +201,6 @@ class Game:
 
         self.popup_idx = self.board.create_window(self.board.width/2, self.board.height/2, anchor=tk.NW,window=f, width=400, height=200)
 
-    def fade_away(self):
-        alpha = self.game_window.attributes("-alpha")
-        if alpha > 0.4:
-            alpha -= .1
-            self.game_window.attributes("-alpha", alpha)
-            print('fading away - {}'.format(alpha))
-            self.game_window.after(100, self.fade_away)
     @staticmethod
     def RBGAImage(path):
 
@@ -248,10 +209,10 @@ class Game:
     def pause_and_resume(self, e=None):
 
         self.controller.pause_and_resume()
-        # self.fade_away()
+        # Animations.fade_away()
         if self.controller.state == States.PAUSED:
             pass
-            # img = Game.RBGAImage("images/pause-img.jpg")
+
             # tk.Label(image=ImageTk.PhotoImage(img)).pack()
             #self.display_save_btn()
             # mf = tk.Frame(self.board, width=self.board.width, bg='blue')

@@ -66,9 +66,6 @@ class Segment(object):
 
         self.index = index
 
-        print(self.type)
-        print(self.coords)
-
     def create_tail(self):
         tail_angle = self.tail_angle
         #index = self.board.create_rectangle(self.coords, fill='pink', tags=('body'))

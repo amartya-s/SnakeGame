@@ -4,7 +4,7 @@ import datetime
 
 from SnakeGame.constants.direction import Direction
 from SnakeGame.actors.snake import Snake, Segment
-from SnakeGame.actors.food import Food
+from SnakeGame.actors.food import Food, AutoDestroyableFood
 from SnakeGame.actors.bomb import Bomb
 from SnakeGame.constants.game_states import States
 from SnakeGame.controllers.datastore import DataStoreManager
@@ -12,6 +12,12 @@ from SnakeGame.controllers.datastore import DataStoreManager
 
 SNAKE_INIT_COORD = (600,200)
 FOOD_INIT_COORD = (500, 100)
+FOOD_WITH_TIMERS_ALLOWED_AT_SAME_TIME = 1
+RANDOM_BOMB_AFTER_DURATION_MIN_MAX = 30000,100000
+RANDOM_FOOD_WITH_TIMER_AFTER_DURATION_MIN_MAX = 3000, 10000
+BOMB_DURATION_MIN_MAX = 5000,20000
+FOOD_WITH_TIMER_DURATION_MIN_MAX = 2000, 10000
+FOOD_WITH_TIMER_SCORE = 20
 
 
 class Controller:
@@ -19,6 +25,7 @@ class Controller:
         self.board = None
         self.snake = None
         self.food = None
+        self.foods_with_timers = []
         self.bomb_by_index = dict()
         self.snake_direction = None
         self.state = States.NOT_STARTED
@@ -34,10 +41,14 @@ class Controller:
         self.add_snake()
         self.add_food()
         self.randomly_add_bomb()
+        self.randomly_add_food_with_timer()
 
     def pause(self):
         for index, bomb in self.bomb_by_index.items():
             bomb.pause()
+
+        for food in self.foods_with_timers:
+            food.pause()
 
         self.state = States.PAUSED
 
@@ -46,6 +57,8 @@ class Controller:
     def resume(self):
         for index, bomb in self.bomb_by_index.items():
             bomb.resume()
+        for food in self.foods_with_timers:
+            food.resume()
 
         self.state = States.RUNNING
 
@@ -115,8 +128,26 @@ class Controller:
                     print("Bomb {} overlapped with head: {}".format(index,snake_head.index))
                     self.end_game()
                     break
-
         self.bomb_by_index = bomb_by_index_copy
+
+        # collision with destroyable food
+        foods_with_timers = []
+        for food in self.foods_with_timers:
+            # del non-existent references of food
+            if not food.is_live:
+                del food
+            else:
+                food_coords = food.coords
+                is_overlapping = self.is_overlaping(*(snake_head_coords + food_coords))
+                if is_overlapping:
+                    food.destroy()
+                    self.update_score(FOOD_WITH_TIMER_SCORE,snake_head_coords)
+                else:
+                    foods_with_timers.append(food)
+
+        # Warning: self.foods_with_timers might got updated
+        self.foods_with_timers = foods_with_timers
+
 
     def add_snake(self):
 
@@ -130,18 +161,29 @@ class Controller:
 
         print(self.snake)
 
-    def add_food(self):
+    def add_food(self, auto_destroy_duration=0):
 
-        # destroy food (if existing)
-        if self.food:
+        # destroy food (if existing) -> only if it's a non-destroyable food
+        if self.food and auto_destroy_duration == 0:
             self.food.destroy()
             del self.food
 
-        x=random.randint(Food.FOOD_WIDTH/2, self.board.width-Food.FOOD_WIDTH/2)
-        y=random.randint(Food.FOOD_WIDTH/2, self.board.height-Food.FOOD_WIDTH/2)
+        x = random.randint(Food.FOOD_WIDTH/2, self.board.width-Food.FOOD_WIDTH/2)
+        y = random.randint(Food.FOOD_WIDTH/2, self.board.height-Food.FOOD_WIDTH/2)
 
-        food = Food(self.board, *(x,y))
-        self.food = food
+        # check if it's food_with_timer and if it collides with food_without_timer,
+        # then recursively call add_food with duration
+        if auto_destroy_duration != 0 and \
+                self.is_overlaping(*((x-Food.FOOD_WIDTH/2, y-Food.FOOD_WIDTH/2, x+Food.FOOD_WIDTH/2, y+Food.FOOD_WIDTH/2) + self.food.coords)):
+            self.add_food(auto_destroy_duration=auto_destroy_duration)
+
+        if auto_destroy_duration == 0:
+            food = Food(self.board, *(x, y))
+            self.food = food
+        else:
+            food = AutoDestroyableFood(self.board, auto_destroy_duration, *(x, y))
+            self.foods_with_timers.append(food)
+            print("food with timer added")
 
     def add_bomb(self):
         x=random.randint(Bomb.WIDTH/2, self.board.width-Bomb.WIDTH/2)
@@ -222,7 +264,17 @@ class Controller:
         if self.state in [States.RUNNING]:
             self.add_bomb()
 
-        self.board.after(random.randint(10000, 50000), lambda: self.randomly_add_bomb())
+        self.board.after(random.randint(BOMB_DURATION_MIN_MAX[0], BOMB_DURATION_MIN_MAX[1]), lambda: self.randomly_add_bomb())
+
+    def randomly_add_food_with_timer(self):
+        if self.state in [States.RUNNING] and len(self.foods_with_timers) < FOOD_WITH_TIMERS_ALLOWED_AT_SAME_TIME:
+            duration = random.randint(FOOD_WITH_TIMER_DURATION_MIN_MAX[0], FOOD_WITH_TIMER_DURATION_MIN_MAX[1]) # in ms
+            self.add_food(auto_destroy_duration=duration)
+        else:
+            print("{} already running".format(FOOD_WITH_TIMERS_ALLOWED_AT_SAME_TIME))
+
+        duration = random.randint(RANDOM_FOOD_WITH_TIMER_AFTER_DURATION_MIN_MAX[0], RANDOM_FOOD_WITH_TIMER_AFTER_DURATION_MIN_MAX[1])
+        self.board.after(duration, lambda: self.randomly_add_food_with_timer())
 
     @staticmethod
     def val(c):
@@ -272,13 +324,10 @@ class Controller:
         score_bubble = self.board.create_oval(score_bubble_coord, fill="#%02x%02x%02x" % (0, 100, 255) )
 
         score_text_coords = score_bubble_coord[0]+(score_bubble_coord[2]-score_bubble_coord[0])/2, score_bubble_coord[1]+(score_bubble_coord[3]-score_bubble_coord[1])/2
-        print(self.board)
-        print(score_text_coords)
-        print(increment_by)
-        score_text = self.board.create_text(score_text_coords, fill="blue",font="Times 20  bold", text='+{}'.format(increment_by))
-        print(score_text)
-        self.animate_score_box(score_bubble, score_text)
 
+        score_text = self.board.create_text(score_text_coords, fill="blue",font="Times 20  bold", text='+{}'.format(increment_by))
+
+        self.animate_score_box(score_bubble, score_text)
 
     def end_game(self):
         self.state = States.END
