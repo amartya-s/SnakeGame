@@ -3,12 +3,11 @@ from PIL import ImageTk
 
 from SnakeGame.utils.image_processor import ImageProcessor
 from SnakeGame.utils.timer import CustomTimer
-
+from SnakeGame.constants.game_params import GameParams
 
 class Bomb:
     WIDTH = 50
     IMAGE = None
-    IMAGE_PATH = r'C:\Users\Amartya\PycharmProjects\Projects\SnakeGame\images\bomb.jpg'
 
     def __init__(self, board, x_cord, y_cord):
         self.board = board
@@ -16,15 +15,13 @@ class Bomb:
         self.y = y_cord
         self.is_live = False
         self.index = None
-        self.timer = None
-        self.time_left = None
         self.coords = ()
 
     def get_photo(self):
         if Bomb.IMAGE:
             return Bomb.IMAGE
 
-        masked = ImageProcessor.automask(Bomb.IMAGE_PATH, height=Bomb.WIDTH, width=Bomb.WIDTH)[0]
+        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_BOMB, height=Bomb.WIDTH, width=Bomb.WIDTH)[0]
 
         photo = ImageTk.PhotoImage(masked)
 
@@ -40,19 +37,15 @@ class Bomb:
         self.index = self.board.create_image(self.x, self.y, image=photo,anchor='center')
 
         self.coords = rectangle_cords
-        self.time_left = duration
 
         # destroy after "duration"s have passed
-        t=CustomTimer(duration/1000, self.destroy)
-
-        self.timer = t
+        self.timer = CustomTimer(duration/1000, self.destroy)
         self.timer.start()
 
         self.is_live = True
 
     def pause(self):
         self.timer.pause()
-        print("Timer paused")
 
     def resume(self):
         self.timer.resume()
@@ -60,3 +53,25 @@ class Bomb:
     def destroy(self):
         self.board.delete(self.index)
         self.is_live = False
+
+    def get_pickleble_data(self):
+        data = dict()
+        data['x'] = self.x
+        data['y'] = self.y
+        data['time_left'] = self.timer.get_time_left()
+
+        return data
+
+    @staticmethod
+    def reconstruct(board, **kwargs):
+        x = kwargs['x']
+        y = kwargs['y']
+        time_left = kwargs['time_left']
+
+        bomb_obj = Bomb(board, x, y)
+        bomb_obj.create(time_left)
+        bomb_obj.pause()
+
+        print ("Bomb reconstructed at -{}".format(bomb_obj.coords))
+
+        return bomb_obj

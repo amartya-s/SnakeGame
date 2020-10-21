@@ -2,13 +2,11 @@ from PIL import ImageTk, Image
 from SnakeGame.constants.shape import Shape
 from SnakeGame.utils.image_processor import ImageProcessor
 from SnakeGame.constants.game_states import States
-from SnakeGame.utils.animation import AnimationUtil
+from SnakeGame.constants.game_params import GameParams
 
 
 class Food:
-    FOOD_WIDTH = 80
     IMAGE = None
-    IMAGE_PATH = r'C:\Users\Amartya\PycharmProjects\Projects\SnakeGame\images\rat.jpg'
 
     def __init__(self, board, x_cord, y_cord, shape=Shape.RECTANGlE):
         self.board = board
@@ -18,14 +16,12 @@ class Food:
 
         self.index = None
         self.coords = ()
-        self.create()
 
     def get_photo(self):
-        print("Called from herer")
         if Food.IMAGE:
             return Food.IMAGE
 
-        masked = ImageProcessor.automask(Food.IMAGE_PATH, height=Food.FOOD_WIDTH, width=Food.FOOD_WIDTH)[0]
+        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[0]
 
         Food.IMAGE = ImageTk.PhotoImage(masked)
 
@@ -40,7 +36,7 @@ class Food:
         self.board.after(100, self.update, ind, label)
 
     def create(self):
-        rectangle_cords = self.x-Food.FOOD_WIDTH/2, self.y-Food.FOOD_WIDTH/2,self.x+Food.FOOD_WIDTH/2,self.y+Food.FOOD_WIDTH/2
+        rectangle_cords = self.x-GameParams.FOOD_WIDTH/2, self.y-GameParams.FOOD_WIDTH/2,self.x+GameParams.FOOD_WIDTH/2,self.y+GameParams.FOOD_WIDTH/2
         if self.shape == Shape.RECTANGlE:
             photo = self.get_photo()
 
@@ -57,12 +53,24 @@ class Food:
     def destroy(self):
         self.board.delete(self.index)
 
+    def get_pickleble_data(self):
+        data = dict()
+        data['x'] = self.x
+        data['y'] = self.y
+        data['shape'] = self.shape
+
+        return data
+
+    @staticmethod
+    def reconstruct(board, **kwargs):
+        food = Food(board=board, x_cord=kwargs['x'],
+                                   y_cord=kwargs['y'], shape=kwargs['shape'])
+        food.create()
+        return food
+
 
 class AutoDestroyableFood(Food):
-    CLOCK_WIDTH = 20
-    UPDATE_FREQ_IN_MILLIS = 200
     IMAGE = None
-    IMAGE_PATH = r'C:\Users\Amartya\PycharmProjects\Projects\SnakeGame\images\frog.jpg'
 
     def __init__(self,  board, duration_in_ms, x_cord, y_cord, shape=Shape.RECTANGlE):
         self.duration = duration_in_ms
@@ -79,25 +87,25 @@ class AutoDestroyableFood(Food):
         if AutoDestroyableFood.IMAGE:
             return AutoDestroyableFood.IMAGE
 
-        masked = ImageProcessor.automask(AutoDestroyableFood.IMAGE_PATH, height=Food.FOOD_WIDTH, width=Food.FOOD_WIDTH)[0]
+        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_SUPER_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[0]
 
         AutoDestroyableFood.IMAGE = ImageTk.PhotoImage(masked)
         print('called get photo')
         return AutoDestroyableFood.IMAGE
 
-    def create(self):
+    def create(self, state=States.RUNNING):
         super().create()
         coords = self.coords
-        timer_coords = coords[2]+10, coords[3]-AutoDestroyableFood.CLOCK_WIDTH
+        timer_coords = coords[2]+10, coords[3]-GameParams.CLOCK_WIDTH
 
-        self.timer_rectangle_coords = timer_coords[0]-AutoDestroyableFood.CLOCK_WIDTH/2, \
-                                 timer_coords[1]-AutoDestroyableFood.CLOCK_WIDTH/2,\
-                                 timer_coords[0]+AutoDestroyableFood.CLOCK_WIDTH/2, \
-                                 timer_coords[1]+AutoDestroyableFood.CLOCK_WIDTH/2
+        self.timer_rectangle_coords = timer_coords[0]-GameParams.CLOCK_WIDTH/2, \
+                                 timer_coords[1]-GameParams.CLOCK_WIDTH/2,\
+                                 timer_coords[0]+GameParams.CLOCK_WIDTH/2, \
+                                 timer_coords[1]+GameParams.CLOCK_WIDTH/2
 
-        total_arcs = self.duration/AutoDestroyableFood.UPDATE_FREQ_IN_MILLIS
+        total_arcs = self.duration/GameParams.UPDATE_FREQ_IN_MILLIS
         self.extent_angle=360/total_arcs
-        self.state = States.RUNNING
+        self.state = state
 
         self.animate()
 
@@ -108,7 +116,7 @@ class AutoDestroyableFood(Food):
             arc = self.board.create_arc(self.timer_rectangle_coords, start=self.start_angle, extent=self.extent_angle, fill='gray')
             self.arcs.append(arc)
             self.start_angle -= self.extent_angle
-            self.board.after(AutoDestroyableFood.UPDATE_FREQ_IN_MILLIS, lambda: self.animate())
+            self.board.after(GameParams.UPDATE_FREQ_IN_MILLIS, lambda: self.animate())
         else:
             self.destroy()
 
@@ -126,3 +134,28 @@ class AutoDestroyableFood(Food):
         self.board.delete(self.index)
         self.is_live = False
 
+    def get_pickleble_data(self):
+        data = super().get_pickleble_data()
+        data['duration'] = self.duration
+        data['time_left'] = self.duration - (self.duration/(360/self.extent_angle))*len(self.arcs)
+        data['timer_rectangle_coords'] = self.timer_rectangle_coords
+        data['state'] = self.state
+        data['start_angle'] = self.start_angle
+        data['extent_angle'] = self.extent_angle
+        data['is_live'] = self.is_live
+
+        return data
+
+    @staticmethod
+    def reconstruct(board, **kwargs):
+        food = AutoDestroyableFood(board=board, duration_in_ms=kwargs['duration'], x_cord=kwargs['x'], y_cord=kwargs['y'], shape=kwargs['shape'])
+        food.state = States.PAUSED
+
+        time_left = kwargs['time_left']
+        print("Duraion-{}, left: {}".format(food.duration,time_left ))
+        board.create_arc(kwargs['timer_rectangle_coords'], start=90, extent=(food.duration - time_left)*food.extent_angle, fill='gray')
+        food.create(state=States.PAUSED)
+
+        print ("food reconstructed")
+
+        return food

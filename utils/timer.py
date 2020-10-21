@@ -30,3 +30,11 @@ class CustomTimer:
 
             self.timer = Timer(time_left, self.callback)
             self.start()
+        else:
+            self.timer = Timer(self.duration, self.callback)
+            self.start()
+
+    def get_time_left(self):
+        time_left = self.duration - (self.pause_time - self.start_time) if self.pause_time else self.start_time
+        print('{}-{}'.format(self.duration, self.pause_time - self.start_time))
+        return time_left*1000 # in ms

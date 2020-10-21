@@ -1,12 +1,14 @@
-import colour
+import datetime
 from PIL import Image, ImageTk, ImageDraw
 import tkinter as tk
 from tkinter import ttk
+from tkinter.messagebox import showinfo
 
 from SnakeGame.utils.animation import AnimationUtil
 from SnakeGame.constants.game_states import States
+from SnakeGame.constants.game_params import GameParams
 from SnakeGame.controllers.game_controller import Controller
-
+from SnakeGame.controllers.datastore import DataStoreManager
 
 class GameCanvas(tk.Canvas):
     def __init__(self, parent, **kwargs):
@@ -63,8 +65,6 @@ class Game:
 
         self.create_widgets()
 
-        self.state = False
-
         self.pause_label = None
 
         self.controller = Controller()
@@ -74,69 +74,46 @@ class Game:
         return "Pause <Space> | Full Screen <F11>"
 
     @staticmethod
-    def get_game_levels():
-        return ["Level 1", "Level 2", "Level 3"]
-
-    @staticmethod
-    def get_player_types():
-        return ["Type 1", "Type 2", "Type 3"]
-
-    def display_player(self, event):
-        print(self.player_type_var.get())
+    def get_saved_games():
+        saved_games = ['Select']
+        saved_games.extend(DataStoreManager.get_saved_games())
+        return saved_games
 
     def create_widgets(self):
-        control_frame = tk.Frame(master=self.master, bg='pink', relief='ridge',borderwidth=2, width=400, height=400)
-        control_frame.pack()
+        control_frame = tk.Frame(master=self.master, bg='pink', relief='ridge',borderwidth=2, width=400, height=100)
+        control_frame.pack(pady=10, padx=10)
 
         # Play button
-        bt = tk.Button(master=control_frame, text="Play", font="Times 20 bold", borderwidth=4, relief="raised", justify="center", width=10
-                       , command=self.create_game_window)
-        bt.bind("<Enter>", lambda e: AnimationUtil.fade_btn(e, bt, "#f47142", "white"))
-        bt.bind("<Leave>", lambda e: AnimationUtil.fade_btn(e, bt, "white", "black"))
-        # select level frame
-        dropdown_frame = tk.Frame(control_frame, width=100, height=100, relief='groove',borderwidth=3)
+        new_bt = tk.Button(master=control_frame, text="New Game", font="Times 20 bold", borderwidth=4, relief="raised", justify="center", width=10, height=1
+                       , command=self.start_new_game)
+        new_bt.bind("<Enter>", lambda e: AnimationUtil.fade_btn(e, new_bt, "#f47142", "white"))
+        new_bt.bind("<Leave>", lambda e: AnimationUtil.fade_btn(e, new_bt, "white", "black"))
 
-        self.game_level_var = tk.StringVar(dropdown_frame)
-        choices = Game.get_game_levels()
-        self.game_level_var.set(choices[0])
+        # Load button
+        load_bt = tk.Button(master=control_frame, text="Load", font="Times 20 bold", borderwidth=4, relief="raised", justify="center", width=10, height=1
+                       , command=self.load_game)
+        load_bt.bind("<Enter>", lambda e: AnimationUtil.fade_btn(e, load_bt, "#f47142", "white"))
+        load_bt.bind("<Leave>", lambda e: AnimationUtil.fade_btn(e, load_bt, "white", "black"))
 
-        tk.Label(dropdown_frame, text="Select Level ",
-                  font="Times 20 bold", borderwidth=4, justify="center").grid(row=0,column=5, pady=10)
+        # select samed games frame
+        dropdown_frame = tk.Frame(control_frame, width=50, height=200, relief='groove',borderwidth=3)
 
-        combo_box_level = ttk.Combobox(dropdown_frame,textvariable=self.game_level_var,state='readonly',justify='center', height=150, width=50)
-        combo_box_level['values'] = tuple(choices)
-        combo_box_level.grid()
-        combo_box_level.set(self.game_level_var.get())
+        self.saved_games_var = tk.StringVar(dropdown_frame)
+        saved_games = Game.get_saved_games()
+        self.saved_games_var.set(saved_games[0])
 
-        # select player type frame
-        choose_player_frame = tk.Frame(control_frame, relief='groove',borderwidth=5, highlightbackground='red')
+        tk.Label(dropdown_frame, text="Saved games ",
+                  font="Times 20 bold", borderwidth=4, justify="center").pack(side=tk.TOP)
 
-        self.player_type_var = tk.StringVar(choose_player_frame)
-        choices = Game.get_player_types()
-        self.player_type_var.set(choices[0])
-
-        tk.Label(choose_player_frame, text="Select player type ",
-                  font="Times 20 bold", borderwidth=4, justify="center").grid(row=0,column=5, pady=10)
-
-        combo_box_player = ttk.Combobox(choose_player_frame,textvariable=self.player_type_var,state='readonly',justify='center', height=150, width=50)
-        combo_box_player['values'] = tuple(choices)
-        combo_box_player.grid()
-        combo_box_player.set(self.player_type_var.get())
-        combo_box_player.bind_all("<<ComboboxSelected>>", lambda e:self.display_player(e))
-
-        # display player window
-        player_display_frame = tk.Frame(control_frame, relief='groove', borderwidth=5, highlightbackground='red')
-        display_canvas = tk.Canvas(player_display_frame,  bg='white', width=100, height=100,highlightthickness=3, highlightbackground="red")
-        display_canvas.pack()
-        #display_canvas.create_
+        combo_box_level = ttk.Combobox(dropdown_frame,textvariable=self.saved_games_var,state='readonly',justify='center', height=100, width=50)
+        combo_box_level['values'] = tuple(saved_games)
+        combo_box_level.pack(side=tk.BOTTOM)
+        combo_box_level.set(self.saved_games_var.get())
 
         # placing everything in the grid structure
-        dropdown_frame.grid(row=1, column=1, rowspan=10, columnspan=5, padx=5,pady=5)
-        choose_player_frame.grid(row=11, column=1, rowspan=10, columnspan=5, padx=1,pady=5)
-        player_display_frame.grid(row=11, column=6, rowspan=10, columnspan=5, padx=1,pady=5)
-        bt.grid(row=5,column=6,padx=10)
-        combo_box_level.grid(row=2, column=0, rowspan=len(choices), columnspan=10, sticky='nsew')
-        combo_box_player.grid(row=2, column=0, rowspan=len(choices), columnspan=10, sticky='nsew')
+        dropdown_frame.grid(row=1, column=1, rowspan=5, columnspan=2, padx=5)
+        new_bt.grid(row=1,column=6, rowspan=3 ,padx=10)
+        load_bt.grid(row=4, column=6, rowspan=3, columnspan=5, padx=1,pady=5)
 
     def create_game_window(self):
         game_window = tk.Toplevel(self.master)
@@ -167,17 +144,39 @@ class Game:
         self.controller.board = self.board
         self.controller.score_label = score_label_textvar
 
-        self.play()
+    def start_new_game(self):
+        self.create_game_window()
+        self.bind_events()
+        self.controller.start_new_game()
+
+    def load_game(self):
+        self.create_game_window()
+        self.controller.set_datastore(self.saved_games_var.get())
+        success = self.controller.load_game()
+        if not success:
+            showinfo("Window", "Game failed loading")
+            return
+
+        self.bind_events()
+        self.pause()
 
     def move(self, event):
         self.controller.change_direction(event.keysym)
 
+    def resume(self):
+        self.save_resume_bt_frame.place_forget()
+        self.board.delete(self.pause_label)
+
     def save_btn_handler(self):
-        self.board.delete(self.popup_idx)
+        success = self.controller.save_game()
+        if success:
+            showinfo("Window", "Game Saved")
+        else:
+            showinfo("Window", "Failed saving game")
 
     def resume_bt_handler(self):
-        self.board.delete(self.popup_idx)
-        self.pause_and_resume()
+        self.resume()
+        self.controller.resume()
 
     def display_save_btn(self):
         style = ttk.Style()
@@ -206,41 +205,43 @@ class Game:
 
         return Image.open(path).convert("RGBA")
 
+    def get_save_resume_frame(self, coords):
+        mf = tk.Frame(self.board, width=80, height=5, bg='white')
+
+        # save btn
+        img = Image.open(GameParams.SAVE_IMAGE_PATH)
+        tk.save_img = ImageTk.PhotoImage(img)
+        save_bt = tk.Button(mf, image=tk.save_img, width=190, height=90, borderwidth=0, command=lambda: self.save_btn_handler())
+        save_bt.pack(side=tk.TOP, expand=False)
+
+        # resume btn
+        img = Image.open(GameParams.RESUME_IMAGE_PATH)
+        tk.resume_img = ImageTk.PhotoImage(img)
+        resume_bt = tk.Button(mf, image=tk.resume_img, width=190, height=90, borderwidth=0, command=lambda: self.resume_bt_handler())
+        resume_bt.pack(side=tk.BOTTOM, expand=False)
+
+        return mf
+
+    def pause(self):
+        pause_label = tk.Label(self.board, text='PAUSED', font="InkFree 40 bold", width=self.board.width,
+                               bg='wheat4',
+                               foreground='white')
+        self.pause_label = self.board.create_window(self.board.width / 2, self.board.height / 2,
+                                                    anchor=tk.CENTER,
+                                                    window=pause_label)
+        coords = self.board.coords(self.pause_label)
+        if not hasattr(self, 'save_resume_bt_frame'):
+            mf = self.get_save_resume_frame(coords)
+            self.save_resume_bt_frame = mf
+        self.save_resume_bt_frame.place(in_=self.board, x=coords[0] - 90, y=coords[1] + 45)
+
     def pause_and_resume(self, e=None):
-
-        self.controller.pause_and_resume()
-        # Animations.fade_away()
-        if self.controller.state == States.PAUSED:
-            pass
-
-            # tk.Label(image=ImageTk.PhotoImage(img)).pack()
-            #self.display_save_btn()
-            # mf = tk.Frame(self.board, width=self.board.width, bg='blue')
-            # mf.pack(fill=tk.BOTH, expand=True)
-
-            # f1=tk.Frame(mf, width=self.board.width, height=self.board.height/2, bg='green')
-            # f1.pack(side=tk.TOP)
-            # f2 = tk.Frame(mf, width=self.board.width, height=self.board.height/2, bg='grey')
-            # f2.pack(side=tk.BOTTOM)
-            #self.fade_away()
-            # pause_label = tk.Frame(self.board, width=self.board.width, height=50, bg='black')
-            # pause_label.pack(fill=tk.X, expand=True)
-            # tk.Label(pause_label,text='PAUSED',font="Times 40 bold", anchor=tk.CENTER).pack()
-            #
-            # self.board.create_rectangle(0,0,self.board.width, self.board.height, fill='black',stipple="gray50")
-
-            window_height = 50
-            #self.board.create_window(self.board.width/2, self.board.height/2, anchor=tk.CENTER, window=pause_label)
-
-
-
-            #self.board.delete(self.popup_idx)
-            #self.pause_label.pack_forget()
-
-    def play(self):
-        self.bind_events()
-        #self.pause_label = tk.Frame(self.board, width=self.board.width, height=50, bg='yellow')
-        self.controller.run()
+        if self.controller.state == States.RUNNING:
+            self.pause()
+            self.controller.pause()
+        elif self.controller.state == States.PAUSED:
+            self.resume()
+            self.controller.resume()
 
     def bind_events(self):
         self.board.bind_all("<KeyPress-Left>", lambda e: self.move(e))
@@ -252,7 +253,6 @@ class Game:
 
         print("Event bind done.")
 
-
 if __name__ == '__main__':
 
     root = tk.Tk()
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     app = Game(root)
 
     root.title("Snake game")
-    root.geometry("600x400")
+    root.geometry("600x200")
     # root.grid_rowconfigure(0, weight=1, minsize=1)
     # root.grid_columnconfigure(0, weight=1)
     tk.mainloop()
