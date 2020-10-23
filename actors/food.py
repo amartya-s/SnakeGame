@@ -23,8 +23,9 @@ class Food:
             return Food.IMAGE
 
         masked = \
-        ImageProcessor.automask(GameParams.IMAGE_PATH_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[
-            0]
+            ImageProcessor.automask(GameParams.IMAGE_PATH_FOOD, height=GameParams.FOOD_WIDTH,
+                                    width=GameParams.FOOD_WIDTH)[
+                0]
 
         Food.IMAGE = ImageTk.PhotoImage(masked)
 
