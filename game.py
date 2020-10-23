@@ -197,10 +197,10 @@ class Game:
         game_window = tk.Toplevel(self.master)
         game_window.title("Snake Game")
 
-        board_frame = tk.Frame(master=game_window, bg='black', highlightthickness=3, highlightbackground="yellow")
+        board_frame = tk.Frame(master=game_window, bg='black', highlightthickness=5, highlightbackground="black")
         board_frame.pack(fill=tk.BOTH, expand=True)
 
-        top_frame = tk.Frame(board_frame, height=100, borderwidth=5, highlightthickness=3, highlightbackground='red')
+        top_frame = tk.Frame(board_frame, height=100, borderwidth=5, highlightthickness=3, highlightbackground='black')
         top_frame.pack(side=tk.TOP, fill=tk.X)
 
         s_label_f = tk.Frame(master=top_frame, width=100, height=100, padx=10, relief='groove', borderwidth=5,
@@ -217,7 +217,7 @@ class Game:
                   text=Game.get_control_text(), justify='right', anchor='e').pack(side=tk.RIGHT)
 
         canvas = GameCanvas(board_frame, bg='white', width=1000, height=800, highlightthickness=3,
-                            highlightbackground="red")
+                            highlightbackground="black")
         canvas.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.board = canvas
 
