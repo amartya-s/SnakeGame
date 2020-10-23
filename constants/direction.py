@@ -1,4 +1,4 @@
-class Direction(object):
+class Direction:
     LEFT = "Left"
     RIGHT = "Right"
     UP = "Up"

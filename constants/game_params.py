@@ -41,4 +41,3 @@ class GameParams:
 
     # Datastore config
     DATASTORE_FILE_PATH = pathlib.Path.home()
-    print(DATASTORE_FILE_PATH)

@@ -36,5 +36,4 @@ class CustomTimer:
 
     def get_time_left(self):
         time_left = self.duration - (self.pause_time - self.start_time) if self.pause_time else self.start_time
-        print('{}-{}'.format(self.duration, self.pause_time - self.start_time))
         return time_left*1000 # in ms

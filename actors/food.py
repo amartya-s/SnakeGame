@@ -1,4 +1,4 @@
-from PIL import ImageTk, Image
+from PIL import ImageTk
 from SnakeGame.constants.shape import Shape
 from SnakeGame.utils.image_processor import ImageProcessor
 from SnakeGame.constants.game_states import States
@@ -41,9 +41,6 @@ class Food:
             photo = self.get_photo()
 
             self.index = self.board.create_image(self.x, self.y, image=photo,anchor='center')
-            #label = tk.Label(self.board)
-            #label_window = self.board.create_window(self.x, self.y, window=label)
-            #self.update(0, label)
 
         if self.shape == Shape.OVAL:
             self.index = self.board.create_oval(rectangle_cords, fill='red')
@@ -90,7 +87,6 @@ class AutoDestroyableFood(Food):
         masked = ImageProcessor.automask(GameParams.IMAGE_PATH_SUPER_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[0]
 
         AutoDestroyableFood.IMAGE = ImageTk.PhotoImage(masked)
-        print('called get photo')
         return AutoDestroyableFood.IMAGE
 
     def create(self, state=States.RUNNING):
@@ -152,10 +148,7 @@ class AutoDestroyableFood(Food):
         food.state = States.PAUSED
 
         time_left = kwargs['time_left']
-        print("Duraion-{}, left: {}".format(food.duration,time_left ))
         board.create_arc(kwargs['timer_rectangle_coords'], start=90, extent=(food.duration - time_left)*food.extent_angle, fill='gray')
         food.create(state=States.PAUSED)
-
-        print ("food reconstructed")
 
         return food

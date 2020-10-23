@@ -55,7 +55,6 @@ class Segment:
                 head_coords = rectangle_coords[0], rectangle_coords[1]-Segment.SEGMENT_LENGTH, rectangle_coords[2], rectangle_coords[3]
                 start,extent  = 0, -180
 
-            #index = self.board.create_arc(head_coords,start=start,extent=extent, fill='red', tags=('head'))
             index = self.board.create_rectangle(rectangle_coords, fill='green', tags=('head',))
         elif self.type == Segment.BODY:
             index = self.board.create_rectangle(rectangle_coords, fill='pink', tags=('body'))
@@ -66,9 +65,7 @@ class Segment:
 
     def create_tail(self):
         tail_angle = self.tail_angle
-        #index = self.board.create_rectangle(self.coords, fill='pink', tags=('body'))
 
-        # x2, y2 = self.coords[2], self.coords[1] + (self.coords[3]-self.coords[1])/2
         if self.direction == Direction.RIGHT:
             self.coords = self.coords[0] - Segment.SEGMENT_WIDTH, self.coords[1], self.coords[2], self.coords[3]
             y1 = self.coords[1] + (self.coords[3] - self.coords[1]) / 2 + math.tan(math.radians(self.tail_angle)) * (
@@ -140,14 +137,12 @@ class Segment:
 
 class Snake:
 
-    def __init__(self, canvas, **properties):
-        self.properties = properties
+    def __init__(self, canvas):
         self.canvas = canvas
         self.segments = collections.deque([])
         self.speed = 100
         self.head = None
         self.tail = None
-        self.is_frozen = False
 
     def __str__(self):
         str_return = ''
@@ -155,12 +150,6 @@ class Snake:
             str_return+="{}[{}]:[{}]->".format(segment.type, segment.index, [segment.x, segment.y])
 
         return str_return
-
-    def freeze(self):
-        self.is_frozen = True
-
-    def unfreeze(self):
-        self.is_frozen = False
 
     def increment_speed(self, increment_by):
         self.speed -= increment_by
@@ -262,23 +251,19 @@ class Snake:
 
         self.tail.recreate(Segment.TAIL, tail_angle,tail_direction )
 
-
     def get_pickleble_data(self):
         data = dict()
-        data['properties'] = self.properties
         data['segments'] = [segment.get_pickleble_data() for segment in self.segments]
         data['speed'] = self.speed
         data['head'] = self.head.get_pickleble_data()
         data['tail'] = self.tail.get_pickleble_data()
-        data['is_frozen'] = self.is_frozen
 
         return data
 
     @staticmethod
     def reconstruct(board, snake_data):
-        properties = snake_data['properties']
         speed = snake_data['speed']
-        snake = Snake(board, **properties)
+        snake = Snake(board)
         snake.speed = speed
 
         segments_data = snake_data['segments']

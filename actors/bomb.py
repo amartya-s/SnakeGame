@@ -1,4 +1,3 @@
-import time
 from PIL import ImageTk
 
 from SnakeGame.utils.image_processor import ImageProcessor

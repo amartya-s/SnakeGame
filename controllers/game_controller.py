@@ -7,12 +7,13 @@ import datetime
 import tkinter as tk
 
 from SnakeGame.constants.direction import Direction
-from SnakeGame.actors.snake import Snake, Segment
-from SnakeGame.utils.animation import AnimationUtil
-from SnakeGame.actors.food import Food, AutoDestroyableFood
-from SnakeGame.actors.bomb import Bomb
 from SnakeGame.constants.game_states import States
 from SnakeGame.constants.game_params import GameParams
+from SnakeGame.utils.animation import AnimationUtil
+
+from SnakeGame.actors.snake import Snake, Segment
+from SnakeGame.actors.food import Food, AutoDestroyableFood
+from SnakeGame.actors.bomb import Bomb
 from SnakeGame.controllers.datastore import DataStoreManager
 
 
@@ -30,13 +31,18 @@ class Controller:
     def set_datastore(self, inst):
         self.data_store = DataStoreManager(inst)
 
-    def start_new_game(self):
-        self.setup_game()
-        #self.score_label.set(str(self.score_label.get()))
+    def set_board(self, board):
+        self.board = board
+
+    def set_score_label(self, score_label):
+        self.score_label = score_label
 
     def setup_game(self):
         self.add_snake()
         self.add_food()
+
+    def start_new_game(self):
+        self.setup_game()
 
     def pause(self):
         for index, bomb in self.bomb_by_index.items():
@@ -68,7 +74,8 @@ class Controller:
 
         print("Game resumed")
 
-    def is_overlaping(self, x1, y1, x2, y2, i1, j1, i2, j2):
+    @staticmethod
+    def is_overlaping(x1, y1, x2, y2, i1, j1, i2, j2):
         # left-right overlapping
         if x1 >= i2 or i1 >= x2:
             return  False
@@ -78,6 +85,28 @@ class Controller:
             return False
 
         return True
+
+    def change_direction(self, direction):
+        if self.state == States.NOT_STARTED:
+            self.state = States.RUNNING
+            self.move_snake()
+
+            self.randomly_add_bomb()
+            self.randomly_add_food_with_timer()
+
+            return
+
+        if self.state != States.RUNNING:
+            return
+
+        snake_direction = self.snake.head.direction
+        if (snake_direction == Direction.RIGHT and direction == Direction.LEFT) \
+                or (snake_direction == Direction.LEFT and direction == Direction.RIGHT) \
+                or (snake_direction == Direction.UP and direction == Direction.DOWN)\
+                or (snake_direction == Direction.DOWN and direction == Direction.UP):
+            return
+
+        self.snake.head.change_direction(direction)
 
     def check_collision(self):
         snake_head = self.snake.head
@@ -91,7 +120,7 @@ class Controller:
             if snake_head.index == segment.index:
                 continue
 
-            is_overlapping = self.is_overlaping(*(snake_head_coords + segment.coords))
+            is_overlapping = Controller.is_overlaping(*(snake_head_coords + segment.coords))
 
             if is_overlapping:
                 print("Overlapped with head: {}".format(snake_head.index))
@@ -153,8 +182,6 @@ class Controller:
         self.snake.add_segment(segment_type=Segment.BODY, direction=Direction.RIGHT)
         self.snake.add_segment(segment_type=Segment.BODY, direction=Direction.RIGHT)
         self.snake.add_segment(segment_type=Segment.TAIL, direction=Direction.RIGHT)
-
-        print(self.snake)
 
     def add_food(self, auto_destroy_duration=0):
 
@@ -228,29 +255,6 @@ class Controller:
 
         self.bomb_by_index[bomb.index] = bomb
 
-    def change_direction(self, direction):
-        if self.state == States.NOT_STARTED:
-            self.state = States.RUNNING
-            self.move_snake()
-            print("snake moving")
-
-            self.randomly_add_bomb()
-            self.randomly_add_food_with_timer()
-
-            return
-
-        if self.state != States.RUNNING:
-            return
-
-        snake_direction = self.snake.head.direction
-        if (snake_direction == Direction.RIGHT and direction == Direction.LEFT) \
-                or (snake_direction == Direction.LEFT and direction == Direction.RIGHT) \
-                or (snake_direction == Direction.UP and direction == Direction.DOWN)\
-                or (snake_direction == Direction.DOWN and direction == Direction.UP):
-            return
-
-        self.snake.head.change_direction(direction)
-
     def move_snake(self):
 
         if self.state != States.RUNNING:
@@ -312,21 +316,14 @@ class Controller:
 
             self.snake = Snake.reconstruct(self.board, player_data)
             self.food = Food.reconstruct(self.board, **food_data)
-            print("Food data: {}".format(food_data))
 
             for food in foods_with_timer_data:
-                print("Food with timer -{}".format(food))
                 food_obj = AutoDestroyableFood.reconstruct(self.board, **food)
                 self.foods_with_timers.append(food_obj)
-            print ("Reconstruced food_with_timer =>")
-            print (self.foods_with_timers)
 
             for bomb in bombs_data:
-                print('Reconstructing bomb: {}'.format(bomb))
                 bomb_obj = Bomb.reconstruct(self.board, **bomb)
                 self.bomb_by_index[bomb_obj.index] = bomb_obj
-            print ("Reconstructed bombs:=")
-            print (self.bomb_by_index)
 
             self.score_label.set(str(score))
 

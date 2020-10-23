@@ -1,14 +1,14 @@
-import datetime
-from PIL import Image, ImageTk, ImageDraw
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 from tkinter.messagebox import showinfo
 
-from SnakeGame.utils.animation import AnimationUtil
 from SnakeGame.constants.game_states import States
 from SnakeGame.constants.game_params import GameParams
+from SnakeGame.utils.animation import AnimationUtil
 from SnakeGame.controllers.game_controller import Controller
 from SnakeGame.controllers.datastore import DataStoreManager
+
 
 class GameCanvas(tk.Canvas):
     def __init__(self, parent, **kwargs):
@@ -36,9 +36,7 @@ class GameCanvas(tk.Canvas):
         self.width = event.width
         self.height = event.height
 
-        #self.scale("all", 0, 0, wscale, hscale)
-
-        print("width:{}-height:{}".format(self.width, self.height))
+        print("Window resized | width:{}-height:{}".format(self.width, self.height))
 
     def toggle_fullscreen(self, event=None):
         self.state = not self.state  # Just toggling the boolean
@@ -54,19 +52,12 @@ class GameCanvas(tk.Canvas):
 class Game:
     def __init__(self, root, **kwargs):
         master_window_width = 1000
-        # master = tk.Frame(root, background='brown', width=master_window_width)
-        # master.pack(fill=tk.BOTH, expand=True)
 
         self.master = root
         self.board = None
-        self.snake = None
-
-        self.popup_idx = None
-
-        self.create_widgets()
-
         self.pause_label = None
 
+        self.create_widgets()
         self.controller = Controller()
 
     @staticmethod
@@ -78,6 +69,88 @@ class Game:
         saved_games = ['Select']
         saved_games.extend(DataStoreManager.get_saved_games())
         return saved_games
+
+    def bind_events(self):
+        self.board.bind_all("<KeyPress-Left>", lambda e: self.move(e))
+        self.board.bind_all("<KeyPress-Right>", lambda e: self.move(e))
+        self.board.bind_all("<KeyPress-Up>", lambda e: self.move(e))
+        self.board.bind_all("<KeyPress-Down>", lambda e: self.move(e))
+
+        self.board.bind_all("<space>", lambda e: self.pause_and_resume(e))
+
+        print("Event bind done.")
+
+    def get_save_resume_frame(self, coords):
+        mf = tk.Frame(self.board, width=80, height=5, bg='white')
+
+        # save btn
+        img = Image.open(GameParams.SAVE_IMAGE_PATH)
+        tk.save_img = ImageTk.PhotoImage(img)
+        save_bt = tk.Button(mf, image=tk.save_img, width=190, height=90, borderwidth=0, command=lambda: self.save_btn_handler())
+        save_bt.pack(side=tk.TOP, expand=False)
+
+        # resume btn
+        img = Image.open(GameParams.RESUME_IMAGE_PATH)
+        tk.resume_img = ImageTk.PhotoImage(img)
+        resume_bt = tk.Button(mf, image=tk.resume_img, width=190, height=90, borderwidth=0, command=lambda: self.resume_bt_handler())
+        resume_bt.pack(side=tk.BOTTOM, expand=False)
+
+        return mf
+
+    def move(self, event):
+        self.controller.change_direction(event.keysym)
+
+    def start_new_game(self):
+        self.create_game_window()
+        self.bind_events()
+        self.controller.start_new_game()
+
+    def load_game(self):
+        self.create_game_window()
+        self.controller.set_datastore(inst=self.saved_games_var.get())
+        success = self.controller.load_game()
+        if not success:
+            showinfo("Window", "Game failed loading")
+            return
+
+        self.bind_events()
+        self.pause()
+
+    def resume(self):
+        self.save_resume_bt_frame.place_forget()
+        self.board.delete(self.pause_label)
+
+    def pause(self):
+        pause_label = tk.Label(self.board, text='PAUSED', font="InkFree 40 bold", width=self.board.width,
+                               bg='wheat4',
+                               foreground='white')
+        self.pause_label = self.board.create_window(self.board.width / 2, self.board.height / 2,
+                                                    anchor=tk.CENTER,
+                                                    window=pause_label)
+        coords = self.board.coords(self.pause_label)
+        if not hasattr(self, 'save_resume_bt_frame'):
+            mf = self.get_save_resume_frame(coords)
+            self.save_resume_bt_frame = mf
+        self.save_resume_bt_frame.place(in_=self.board, x=coords[0] - 90, y=coords[1] + 45)
+
+    def pause_and_resume(self, e=None):
+        if self.controller.state == States.RUNNING:
+            self.pause()
+            self.controller.pause()
+        elif self.controller.state == States.PAUSED:
+            self.resume()
+            self.controller.resume()
+
+    def save_btn_handler(self):
+        success = self.controller.save_game()
+        if success:
+            showinfo("Window", "Game Saved")
+        else:
+            showinfo("Window", "Failed saving game")
+
+    def resume_bt_handler(self):
+        self.resume()
+        self.controller.resume()
 
     def create_widgets(self):
         control_frame = tk.Frame(master=self.master, bg='pink', relief='ridge',borderwidth=2, width=400, height=100)
@@ -119,8 +192,6 @@ class Game:
         game_window = tk.Toplevel(self.master)
         game_window.title("Snake Game")
 
-        #game_window.minsize(width=1500, height=1000)
-
         board_frame = tk.Frame(master=game_window, bg='black',highlightthickness=3, highlightbackground="yellow")
         board_frame.pack( fill=tk.BOTH,  expand=True)
 
@@ -141,117 +212,10 @@ class Game:
         canvas = GameCanvas(board_frame, bg='white', width=1000, height=800,highlightthickness=3, highlightbackground="red")
         canvas.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.board = canvas
-        self.controller.board = self.board
-        self.controller.score_label = score_label_textvar
 
-    def start_new_game(self):
-        self.create_game_window()
-        self.bind_events()
-        self.controller.start_new_game()
+        self.controller.set_board(self.board)
+        self.controller.set_score_label(score_label_textvar)
 
-    def load_game(self):
-        self.create_game_window()
-        self.controller.set_datastore(self.saved_games_var.get())
-        success = self.controller.load_game()
-        if not success:
-            showinfo("Window", "Game failed loading")
-            return
-
-        self.bind_events()
-        self.pause()
-
-    def move(self, event):
-        self.controller.change_direction(event.keysym)
-
-    def resume(self):
-        self.save_resume_bt_frame.place_forget()
-        self.board.delete(self.pause_label)
-
-    def save_btn_handler(self):
-        success = self.controller.save_game()
-        if success:
-            showinfo("Window", "Game Saved")
-        else:
-            showinfo("Window", "Failed saving game")
-
-    def resume_bt_handler(self):
-        self.resume()
-        self.controller.resume()
-
-    def display_save_btn(self):
-        style = ttk.Style()
-        style.configure('Popup-Button', activebackground="#33B5E5", borderwidth=10, relief=tk.FLAT, justify="center", font="Times 20  bold")
-
-        f = tk.Frame(self.board, width=300, height=200, borderwidth=4,relief=tk.RIDGE)
-        lbl = ttk.Label(f,text="Do you want to save the game ?")
-        lbl.configure(font="Times 15  bold")
-        lbl.pack()
-
-        cf = tk.Frame(f,width=300, height=200)
-        cf.pack(expand=True, fill=tk.BOTH,pady=10)
-
-        save_btn=tk.Button(cf, text='Save', width=50, command=self.save_btn_handler)
-        save_btn.configure(borderwidth=4, relief=tk.RAISED, justify="center", font="Times 20  bold")
-        save_btn.pack(side=tk.TOP, pady=5, padx=20)
-
-        resume_btn=tk.Button(cf, text='Resume (<Space>)', width=50, command=self.resume_bt_handler)
-        resume_btn.configure(  borderwidth=4, relief=tk.RAISED, justify="center", font="Times 20  bold")
-        resume_btn.pack(side=tk.BOTTOM, padx=20)
-
-        self.popup_idx = self.board.create_window(self.board.width/2, self.board.height/2, anchor=tk.NW,window=f, width=400, height=200)
-
-    @staticmethod
-    def RBGAImage(path):
-
-        return Image.open(path).convert("RGBA")
-
-    def get_save_resume_frame(self, coords):
-        mf = tk.Frame(self.board, width=80, height=5, bg='white')
-
-        # save btn
-        img = Image.open(GameParams.SAVE_IMAGE_PATH)
-        tk.save_img = ImageTk.PhotoImage(img)
-        save_bt = tk.Button(mf, image=tk.save_img, width=190, height=90, borderwidth=0, command=lambda: self.save_btn_handler())
-        save_bt.pack(side=tk.TOP, expand=False)
-
-        # resume btn
-        img = Image.open(GameParams.RESUME_IMAGE_PATH)
-        tk.resume_img = ImageTk.PhotoImage(img)
-        resume_bt = tk.Button(mf, image=tk.resume_img, width=190, height=90, borderwidth=0, command=lambda: self.resume_bt_handler())
-        resume_bt.pack(side=tk.BOTTOM, expand=False)
-
-        return mf
-
-    def pause(self):
-        pause_label = tk.Label(self.board, text='PAUSED', font="InkFree 40 bold", width=self.board.width,
-                               bg='wheat4',
-                               foreground='white')
-        self.pause_label = self.board.create_window(self.board.width / 2, self.board.height / 2,
-                                                    anchor=tk.CENTER,
-                                                    window=pause_label)
-        coords = self.board.coords(self.pause_label)
-        if not hasattr(self, 'save_resume_bt_frame'):
-            mf = self.get_save_resume_frame(coords)
-            self.save_resume_bt_frame = mf
-        self.save_resume_bt_frame.place(in_=self.board, x=coords[0] - 90, y=coords[1] + 45)
-
-    def pause_and_resume(self, e=None):
-        if self.controller.state == States.RUNNING:
-            self.pause()
-            self.controller.pause()
-        elif self.controller.state == States.PAUSED:
-            self.resume()
-            self.controller.resume()
-
-    def bind_events(self):
-        self.board.bind_all("<KeyPress-Left>", lambda e: self.move(e))
-        self.board.bind_all("<KeyPress-Right>", lambda e: self.move(e))
-        self.board.bind_all("<KeyPress-Up>", lambda e: self.move(e))
-        self.board.bind_all("<KeyPress-Down>", lambda e: self.move(e))
-
-        self.board.bind_all("<space>", lambda e: self.pause_and_resume(e))
-
-        print("Event bind done.")
 
 if __name__ == '__main__':
 

@@ -39,15 +39,11 @@ class DataStore:
         self.food = food
         self.foods_with_timer = foods_with_timer
         self.score = score
-        print('foodtime-{}'.format(foods_with_timer))
         self.save()
 
     def save(self):
         with open(self.file, 'wb') as f:
             pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
-
-        # data = {'food': self.food, 'foods_with_timer': self.foods_with_timer, 'bombs': self.bombs, 'player': self.player, 'score': self.score}
-        # json.dump(data, open(self.file, 'w'))
 
 
 class DataStoreManager:
