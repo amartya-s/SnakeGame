@@ -1,4 +1,5 @@
 import tkinter as tk
+
 import colour
 
 from SnakeGame.constants.direction import Direction
@@ -6,7 +7,8 @@ from SnakeGame.constants.direction import Direction
 
 class AnimationUtil:
     @staticmethod
-    def _fade(widget, smoothness=4, cnf={}, **kw):  #source: https://stackoverflow.com/questions/49433315/is-there-a-wayor-a-library-for-making-a-smooth-colour-transition-in-tkinter
+    def _fade(widget, smoothness=4, cnf={},
+              **kw):  # source: https://stackoverflow.com/questions/49433315/is-there-a-wayor-a-library-for-making-a-smooth-colour-transition-in-tkinter
 
         """This function will show faded effect on widget's different color options.
 
@@ -38,7 +40,6 @@ class AnimationUtil:
     def fade_btn(event, widget, bg, fg):
         AnimationUtil._fade(widget, smoothness=5, fg=fg, bg=bg)
 
-
     @staticmethod
     def val(c):
         if c >= '0' and c <= '9':
@@ -52,19 +53,20 @@ class AnimationUtil:
 
         power = 1  # Initialize power of base
         num = 0  # Initialize result
-        num = AnimationUtil.val(hex[1]) + AnimationUtil.val(hex[0])*16
+        num = AnimationUtil.val(hex[1]) + AnimationUtil.val(hex[0]) * 16
 
         return num
 
     @staticmethod
-    def fade_away(canvas, widget_index,  direction=None):
+    def fade_away(canvas, widget_index, direction=None):
         if direction == Direction.UP:
             canvas.move(widget_index, 0, -1)
         if direction == Direction.DOWN:
             canvas.move(widget_index, 0, 1)
 
         fill = canvas.itemcget(widget_index, 'fill')
-        redValue, blueValue, greenValue = AnimationUtil.toDeci(fill[1:3]), AnimationUtil.toDeci(fill[3:5]), AnimationUtil.toDeci(fill[5:7])
+        redValue, blueValue, greenValue = AnimationUtil.toDeci(fill[1:3]), AnimationUtil.toDeci(
+            fill[3:5]), AnimationUtil.toDeci(fill[5:7])
         redValue = redValue + 5 if redValue < 255 else 255
         blueValue = blueValue + 5 if blueValue < 255 else 255
         greenValue = greenValue + 5 if greenValue < 255 else 255
@@ -78,4 +80,4 @@ class AnimationUtil:
             canvas.delete(widget_index)
             return
 
-        canvas.after(10, lambda: AnimationUtil.fade_away(canvas, widget_index,direction))
+        canvas.after(10, lambda: AnimationUtil.fade_away(canvas, widget_index, direction))

@@ -1,8 +1,9 @@
 from PIL import ImageTk
+
+from SnakeGame.constants.game_params import GameParams
+from SnakeGame.constants.game_states import States
 from SnakeGame.constants.shape import Shape
 from SnakeGame.utils.image_processor import ImageProcessor
-from SnakeGame.constants.game_states import States
-from SnakeGame.constants.game_params import GameParams
 
 
 class Food:
@@ -21,13 +22,15 @@ class Food:
         if Food.IMAGE:
             return Food.IMAGE
 
-        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[0]
+        masked = \
+        ImageProcessor.automask(GameParams.IMAGE_PATH_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[
+            0]
 
         Food.IMAGE = ImageTk.PhotoImage(masked)
 
         return Food.IMAGE
 
-    def update(self,ind, label):
+    def update(self, ind, label):
         frame = self.frames[ind]
         ind += 1
         if ind > len(self.frames):  # With this condition it will play gif infinitely
@@ -36,11 +39,11 @@ class Food:
         self.board.after(100, self.update, ind, label)
 
     def create(self):
-        rectangle_cords = self.x-GameParams.FOOD_WIDTH/2, self.y-GameParams.FOOD_WIDTH/2,self.x+GameParams.FOOD_WIDTH/2,self.y+GameParams.FOOD_WIDTH/2
+        rectangle_cords = self.x - GameParams.FOOD_WIDTH / 2, self.y - GameParams.FOOD_WIDTH / 2, self.x + GameParams.FOOD_WIDTH / 2, self.y + GameParams.FOOD_WIDTH / 2
         if self.shape == Shape.RECTANGlE:
             photo = self.get_photo()
 
-            self.index = self.board.create_image(self.x, self.y, image=photo,anchor='center')
+            self.index = self.board.create_image(self.x, self.y, image=photo, anchor='center')
 
         if self.shape == Shape.OVAL:
             self.index = self.board.create_oval(rectangle_cords, fill='red')
@@ -61,7 +64,7 @@ class Food:
     @staticmethod
     def reconstruct(board, **kwargs):
         food = Food(board=board, x_cord=kwargs['x'],
-                                   y_cord=kwargs['y'], shape=kwargs['shape'])
+                    y_cord=kwargs['y'], shape=kwargs['shape'])
         food.create()
         return food
 
@@ -69,7 +72,7 @@ class Food:
 class AutoDestroyableFood(Food):
     IMAGE = None
 
-    def __init__(self,  board, duration_in_ms, x_cord, y_cord, shape=Shape.RECTANGlE):
+    def __init__(self, board, duration_in_ms, x_cord, y_cord, shape=Shape.RECTANGlE):
         self.duration = duration_in_ms
         self.arcs = []
         self.timer_rectangle_coords = ()
@@ -78,13 +81,14 @@ class AutoDestroyableFood(Food):
         self.extent_angle = 0
         self.is_live = True
 
-        super().__init__(board,x_cord,y_cord,shape)
+        super().__init__(board, x_cord, y_cord, shape)
 
     def get_photo(self):
         if AutoDestroyableFood.IMAGE:
             return AutoDestroyableFood.IMAGE
 
-        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_SUPER_FOOD, height=GameParams.FOOD_WIDTH, width=GameParams.FOOD_WIDTH)[0]
+        masked = ImageProcessor.automask(GameParams.IMAGE_PATH_SUPER_FOOD, height=GameParams.FOOD_WIDTH,
+                                         width=GameParams.FOOD_WIDTH)[0]
 
         AutoDestroyableFood.IMAGE = ImageTk.PhotoImage(masked)
         return AutoDestroyableFood.IMAGE
@@ -92,15 +96,15 @@ class AutoDestroyableFood(Food):
     def create(self, state=States.RUNNING):
         super().create()
         coords = self.coords
-        timer_coords = coords[2]+10, coords[3]-GameParams.CLOCK_WIDTH
+        timer_coords = coords[2] + 10, coords[3] - GameParams.CLOCK_WIDTH
 
-        self.timer_rectangle_coords = timer_coords[0]-GameParams.CLOCK_WIDTH/2, \
-                                 timer_coords[1]-GameParams.CLOCK_WIDTH/2,\
-                                 timer_coords[0]+GameParams.CLOCK_WIDTH/2, \
-                                 timer_coords[1]+GameParams.CLOCK_WIDTH/2
+        self.timer_rectangle_coords = timer_coords[0] - GameParams.CLOCK_WIDTH / 2, \
+                                      timer_coords[1] - GameParams.CLOCK_WIDTH / 2, \
+                                      timer_coords[0] + GameParams.CLOCK_WIDTH / 2, \
+                                      timer_coords[1] + GameParams.CLOCK_WIDTH / 2
 
-        total_arcs = self.duration/GameParams.UPDATE_FREQ_IN_MILLIS
-        self.extent_angle=360/total_arcs
+        total_arcs = self.duration / GameParams.UPDATE_FREQ_IN_MILLIS
+        self.extent_angle = 360 / total_arcs
         self.state = state
 
         self.animate()
@@ -109,7 +113,8 @@ class AutoDestroyableFood(Food):
         if not self.state == States.RUNNING:
             return
         if self.start_angle > -270:
-            arc = self.board.create_arc(self.timer_rectangle_coords, start=self.start_angle, extent=self.extent_angle, fill='gray')
+            arc = self.board.create_arc(self.timer_rectangle_coords, start=self.start_angle, extent=self.extent_angle,
+                                        fill='gray')
             self.arcs.append(arc)
             self.start_angle -= self.extent_angle
             self.board.after(GameParams.UPDATE_FREQ_IN_MILLIS, lambda: self.animate())
@@ -133,7 +138,7 @@ class AutoDestroyableFood(Food):
     def get_pickleble_data(self):
         data = super().get_pickleble_data()
         data['duration'] = self.duration
-        data['time_left'] = self.duration - (self.duration/(360/self.extent_angle))*len(self.arcs)
+        data['time_left'] = self.duration - (self.duration / (360 / self.extent_angle)) * len(self.arcs)
         data['timer_rectangle_coords'] = self.timer_rectangle_coords
         data['state'] = self.state
         data['start_angle'] = self.start_angle
@@ -144,11 +149,13 @@ class AutoDestroyableFood(Food):
 
     @staticmethod
     def reconstruct(board, **kwargs):
-        food = AutoDestroyableFood(board=board, duration_in_ms=kwargs['duration'], x_cord=kwargs['x'], y_cord=kwargs['y'], shape=kwargs['shape'])
+        food = AutoDestroyableFood(board=board, duration_in_ms=kwargs['duration'], x_cord=kwargs['x'],
+                                   y_cord=kwargs['y'], shape=kwargs['shape'])
         food.state = States.PAUSED
 
         time_left = kwargs['time_left']
-        board.create_arc(kwargs['timer_rectangle_coords'], start=90, extent=(food.duration - time_left)*food.extent_angle, fill='gray')
+        board.create_arc(kwargs['timer_rectangle_coords'], start=90,
+                         extent=(food.duration - time_left) * food.extent_angle, fill='gray')
         food.create(state=States.PAUSED)
 
         return food

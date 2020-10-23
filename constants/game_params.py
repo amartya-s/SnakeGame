@@ -1,6 +1,7 @@
 import os
 import pathlib
 
+
 class GameParams:
     # Controller params
     SNAKE_INIT_COORD = (600, 200)
@@ -18,7 +19,7 @@ class GameParams:
 
     FOOD_WIDTH = 80
     IMAGE = None
-    IMAGE_PATH_FOOD = os.path.join(os.path.split(os.path.dirname(__file__))[0],'images','rat.jpg')
+    IMAGE_PATH_FOOD = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'rat.jpg')
 
     # AutoDestroyable food params
     RANDOM_FOOD_WITH_TIMER_AFTER_DURATION_MIN_MAX = 10000, 50000
@@ -26,18 +27,18 @@ class GameParams:
 
     CLOCK_WIDTH = 20
     UPDATE_FREQ_IN_MILLIS = 200
-    IMAGE_PATH_SUPER_FOOD = os.path.join(os.path.split(os.path.dirname(__file__))[0] ,'images','frog.jpg')
+    IMAGE_PATH_SUPER_FOOD = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'frog.jpg')
 
     # Bomb params
     RANDOM_BOMB_AFTER_DURATION_MIN_MAX = 30000, 50000
     BOMB_DURATION_MIN_MAX = 20000, 30000
 
-    IMAGE_PATH_BOMB = os.path.join(os.path.split(os.path.dirname(__file__))[0],'images','bomb.jpg')
+    IMAGE_PATH_BOMB = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'bomb.jpg')
 
     # Button config
-    SAVE_IMAGE_PATH =  os.path.join(os.path.split(os.path.dirname(__file__))[0],'images','save.png')
-    RESUME_IMAGE_PATH = os.path.join(os.path.split(os.path.dirname(__file__))[0],'images','resume.png')
-    PAUSE_IMAGE_PATH = os.path.join(os.path.split(os.path.dirname(__file__))[0],'images','pause.png')
+    SAVE_IMAGE_PATH = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'save.png')
+    RESUME_IMAGE_PATH = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'resume.png')
+    PAUSE_IMAGE_PATH = os.path.join(os.path.split(os.path.dirname(__file__))[0], 'images', 'pause.png')
 
     # Datastore config
     DATASTORE_FILE_PATH = pathlib.Path.home()

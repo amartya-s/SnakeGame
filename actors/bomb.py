@@ -1,8 +1,9 @@
 from PIL import ImageTk
 
+from SnakeGame.constants.game_params import GameParams
 from SnakeGame.utils.image_processor import ImageProcessor
 from SnakeGame.utils.timer import CustomTimer
-from SnakeGame.constants.game_params import GameParams
+
 
 class Bomb:
     WIDTH = 50
@@ -29,16 +30,16 @@ class Bomb:
         return photo
 
     def create(self, duration):
-        rectangle_cords = self.x-Bomb.WIDTH/2, self.y-Bomb.WIDTH/2,self.x+Bomb.WIDTH/2,self.y+Bomb.WIDTH/2
+        rectangle_cords = self.x - Bomb.WIDTH / 2, self.y - Bomb.WIDTH / 2, self.x + Bomb.WIDTH / 2, self.y + Bomb.WIDTH / 2
 
         photo = self.get_photo()
         self.img = photo
-        self.index = self.board.create_image(self.x, self.y, image=photo,anchor='center')
+        self.index = self.board.create_image(self.x, self.y, image=photo, anchor='center')
 
         self.coords = rectangle_cords
 
         # destroy after "duration"s have passed
-        self.timer = CustomTimer(duration/1000, self.destroy)
+        self.timer = CustomTimer(duration / 1000, self.destroy)
         self.timer.start()
 
         self.is_live = True
@@ -71,6 +72,6 @@ class Bomb:
         bomb_obj.create(time_left)
         bomb_obj.pause()
 
-        print ("Bomb reconstructed at -{}".format(bomb_obj.coords))
+        print("Bomb reconstructed at -{}".format(bomb_obj.coords))
 
         return bomb_obj

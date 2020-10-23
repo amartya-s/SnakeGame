@@ -1,6 +1,6 @@
+import json
 import os
 import pickle
-import json
 
 from SnakeGame.constants.game_params import GameParams
 
@@ -12,7 +12,7 @@ class DataStore:
         self.food = None
         self.foods_with_timer = []
         self.score = 0
-        self.file = "{}\\game-{}.txt".format(GameParams.DATASTORE_FILE_PATH,self.inst)
+        self.file = "{}\\game-{}.txt".format(GameParams.DATASTORE_FILE_PATH, self.inst)
 
     def load(self):
         obj = None
@@ -56,7 +56,7 @@ class DataStoreManager:
     @staticmethod
     def get_saved_games():
         if not os.path.exists(DataStoreManager.game_list_file):
-            f=open(DataStoreManager.game_list_file, 'w+')
+            f = open(DataStoreManager.game_list_file, 'w+')
             json.dump([], f)
             return []
         else:

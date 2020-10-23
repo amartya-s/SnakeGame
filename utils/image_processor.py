@@ -1,4 +1,4 @@
-from PIL import Image, ImageTk,ImageDraw
+from PIL import Image
 
 
 class ImageProcessor:
@@ -26,8 +26,8 @@ class ImageProcessor:
                     rgbImg.putpixel((x, y), backgroundcolor)
                 else:
                     rgbImg.putpixel((x, y), (
-                    abs(pix_color[0]), abs(pix_color[1]),
-                    abs(pix_color[2])))
+                        abs(pix_color[0]), abs(pix_color[1]),
+                        abs(pix_color[2])))
         return rgbImg
 
     @staticmethod
@@ -36,7 +36,7 @@ class ImageProcessor:
 
         rdb_frames = []
 
-        backgroundcolor = (255,255,255)
+        backgroundcolor = (255, 255, 255)
 
         is_animated = False
 
@@ -51,7 +51,7 @@ class ImageProcessor:
                 rgbImg = ImageProcessor.magicSauce(rgbImg, to_copare_with_pixel, backgroundcolor)
                 rdb_frames.append(rgbImg)
         else:
-            #img = img.convert('RGB')
+            # img = img.convert('RGB')
             img = img.resize((height, width), Image.ADAPTIVE)
 
             to_copare_with_pixel = img.getpixel((0, 0))
