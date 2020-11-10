@@ -5,7 +5,7 @@ A snake game application created using TkInker python GUI library.
 Key features: 
 
     - Completely built on Python
-    - Uses python's de-factor GUI library - <a href='https://docs.python.org/3/library/tkinter.html'>Tkinter <a/>
+    - Uses python's de-facto GUI library - <a href='https://docs.python.org/3/library/tkinter.html'>Tkinter <a/>
     - Pause, resume and load from previously saved game
 
 Requirements: 
