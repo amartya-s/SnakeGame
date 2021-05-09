@@ -17,6 +17,11 @@ Running the application:
 
     python game.py
     
+How to play: 
+
+    - Use up, down, left, rigth arrow keys to move
+    - Use space bar to pause/resume 
+    - Use Esc key to exit full-screen mode
 
 ## Demo 
 
